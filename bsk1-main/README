@@ -1,0 +1,36 @@
+File and directory description:
+
+bsk1/client_app - this directory contains a Django project which is responsible for managing the client application. It is quite standard except for the added management command for user account setup (based on the uzytkownicy.txt file):
+
+bsk1/client_app/client_app/management/commands/create_gfb_users.py
+
+I have decided to set usernames as passwords for both the clients in the client app and officers in the officers app.
+
+bsk1/gfb_app_src: this directory contains source code for the officer application. The code is divided into modules with self-explanatory names. Further details are to be found in the code and the comments.
+
+bsk1 - main directory for the app, with the following files included:
+
+app_start.sh - the script to execute instead of entering the shell upon accepting an ssh connection from an officer, responsible for automatic startup of the officer app.
+
+create_cert.sh - the script responsible for creating a CA certificate for the server, executed automatically at build.
+
+permissions_setup - the script to setup appropriate directory permissions for officers and clients. Note - this is not executed on container build due to the issue described here:
+https://github.com/moby/moby/issues/40553
+that is, setfacl settings are not saved if executed during dontainer build. Therefore, for the application to work properly, the script must be executed inside to container AT RUNTIME. Below I will describe in more detail how to run the container.
+
+user_setup.sh - the script that will set up appropriate user accounts at container build. It is run automatically.
+
+uzytkownicy.txt - the provided sample file with user data. The app expects a file named like this to be present in the directory with Dockerfile.
+
+The following sequence of instructions is recommended to run the app:
+
+docker build --rm -t bsk_image .
+docker container run -p 2137:2137 -t -d --name bsk_container bsk_image
+docker exec -it bsk_container bash -c /permissions_setup.sh  # explained above
+
+and this sequence can be run by ./setup.sh.
+
+Then the client server is reachable at:
+http://<container IP address>:2137/
+
+Unfortunately I was not able to set a firewall because neither netfilter not iptables work in docker containers in the usual way (e. g. operation not permitted even if executing as root) and I couldn't find a workaround.
